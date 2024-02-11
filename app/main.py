@@ -1,29 +1,41 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from dataclasses import dataclass, asdict
-import datetime
-from typing import Union, Optional, List
-
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from contextlib import asynccontextmanager
+from redis import asyncio as aioredis
 from app.users.router import router as router_users
 from app.bookings.router import router as router_bookings
 
 from app.pages.router import router as router_pages
 from app.images.router import router as router_images
-app = FastAPI()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    redis = aioredis.from_url("redis://localhost", encoding='utf-8', decode_responses=True)
+    FastAPICache.init(RedisBackend(redis), prefix="cache")
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(router_users)
 app.include_router(router_bookings)
 app.include_router(router_pages)
 app.include_router(router_images)
 
-@dataclass
-class PetArgs:
-    name: str
-    age: int
-    type: Optional[str]
-    created_at: Optional[datetime.datetime]
+origins = [
+    "http://localhost:3000",
+]
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE", "PATCH", "PUT"],
+    allow_headers=["Content-Type", "Set-Cookie", "Access-Control-Allow-Headers",
+                   "Access-Control-Allow-Origin",
+                   "Authorization"],
+)

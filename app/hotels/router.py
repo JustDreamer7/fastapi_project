@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 from typing import List, Optional
-
+from fastapi_cache.decorator import cache
 from fastapi import APIRouter, Query
 
 from app.exceptions import CannotBookHotelForLongPeriod, DateFromCannotBeAfterDateTo
@@ -11,6 +11,7 @@ router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 
 @router.get("/{location}")
+@cache(expire=20) # remove cache data after 20 seconds
 async def get_hotels_by_location_and_time(
     location: str,
     date_from: date = Query(..., description=f"Например, {datetime.now().date()}"),
