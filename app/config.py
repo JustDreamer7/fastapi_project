@@ -13,6 +13,16 @@ class Settings(BaseSettings):
     DB_PASSWORD: str
     DB_NAME: str
 
+    REDIS_HOST: str
+    REDIS_PORT: int
+
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASS: str
+
+    MODE: str
+
     @property
     def DB_URL(self):
         return (

@@ -5,16 +5,20 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from contextlib import asynccontextmanager
 from redis import asyncio as aioredis
+from sqladmin import Admin
+
+from app.admin.views import UsersAdmin, HotelsAdmin, RoomsAdmin, BookingsAdmin
+from app.db import engine
 from app.users.router import router as router_users
 from app.bookings.router import router as router_bookings
 
 from app.pages.router import router as router_pages
 from app.images.router import router as router_images
-
+from app.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis = aioredis.from_url("redis://localhost", encoding='utf-8', decode_responses=True)
+    redis = aioredis.from_url(f"redis://{settings.REDIS_HOST}", encoding='utf-8', decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="cache")
     yield
 
@@ -39,3 +43,22 @@ app.add_middleware(
                    "Access-Control-Allow-Origin",
                    "Authorization"],
 )
+
+admin = Admin(app, engine)
+admin.add_view(UsersAdmin)
+admin.add_view(HotelsAdmin)
+admin.add_view(RoomsAdmin)
+admin.add_view(BookingsAdmin)
+
+app.mount("/static", StaticFiles(directory="app/static"), "static")
+
+if __name__ == "__main__":
+    import uvicorn
+
+    import os.path
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+    uvicorn.run(
+        app="app.main:app",
+        reload=True,
+    )

@@ -1,10 +1,10 @@
 import datetime
 
 from sqlalchemy import select, func, insert
-
+from sqlalchemy.orm import joinedload
 from app.repo.base import BaseRepo
 from app.bookings.models import Bookings
-from app.db import async_session_maker
+from app.db import async_session_maker, async_session_maker_nullpool
 from app.hotels.rooms.models import Rooms
 
 
@@ -35,3 +35,17 @@ class BookingsRepo(BaseRepo):
                 return new_booking.scalar()
             else:
                 return None
+
+        # Функция для решения практического задания по Celery beat
+    @classmethod
+    async def find_need_to_remind(cls, days: int):
+        """Список броней и пользователей, которым необходимо
+        направить напоминание за `days` дней"""
+        async with async_session_maker_nullpool() as session:
+            query = (
+                select(Bookings)
+                .options(joinedload(Bookings.user))
+                .filter(datetime.date.today() == Bookings.date_from - datetime.timedelta(days=days))
+            )
+            result = await session.execute(query)
+            return result.scalars().all()
